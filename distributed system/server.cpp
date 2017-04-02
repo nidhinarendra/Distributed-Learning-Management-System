@@ -17,18 +17,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netdb.h>
 #include <errno.h>
-#include <iostream>
-#include <string>
-using namespace std;
-
-#define portno 3001//The port number on which the server runs
 
 
 /*
@@ -59,34 +53,37 @@ void error(const char *msg)
 
 int main(int argc, char *argv[])
 {
-	//sockfd and newsockfd are the file descriptors
-	//rwSuccess is the return value for read() and write() calls
-	int sockfd, newsockfd, rwSuccess;
-	size_t lengthOfMessageReceived;
-	// To compute the length of the client socket
-	socklen_t client_length;
 
-	//The characters written on the socket is read into this buffer
+	int sockfd, newsockfd, rwSuccess, portno;
+	size_t lengthOfMessageReceived;
+
+	socklen_t client_length, server_length;
+
 	char buffer[BUFSIZ];
 
-	//The Internet address of the server and the client is initialized
 	struct sockaddr_in serv_addr, cli_addr;
 
-	//To compute the process ID of the child which is generated during fork()
 	pid_t childpid;
 
-	//Creating a new socket
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0)
 		error("ERROR opening socket");
+	server_length = sizeof(serv_addr);
 
-	//Setting the value in the buffer to 0
 	bzero((char *) &serv_addr, sizeof(serv_addr));
-
-
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
-	serv_addr.sin_port = htons(portno);
+	serv_addr.sin_port = 0;
+
+	portno = getsockname(sockfd, (struct sockaddr *) &serv_addr, &server_length );
+	if (portno < 0){
+	    error("Failed to get the hostname");
+	    exit(1);
+	}
+	else{
+	printf("The server is listening on port %d\n", portno);
+	//Setting the value in the buffer to 0
+	}
 
 	//Binding socket to an address and checking if it is successful
 	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
@@ -98,16 +95,20 @@ int main(int argc, char *argv[])
 
 	//Loops forever, so that the server is always ready to listen to new connections
 	for(;;){
+		printf("info!!!!\n", getpid());
 		memset(&cli_addr, '\0', sizeof(cli_addr));
 		newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &client_length);
 		if (newsockfd < 0)
 			error("ERROR on accept");
 
 		//Creating a child process to proceed with the new client
-		if ((childpid = fork()) == -1) {
+		childpid = fork();
+		if (childpid == -1) {
+			printf("inside == -1 The childpid is %d\n", getpid());
 			close(newsockfd);
 		}
 		else if(childpid > 0){
+			printf("inside > 0 The childpid is %d\n", getpid());
 			close(newsockfd);
 		}
 		else if(childpid == 0){
@@ -116,9 +117,11 @@ int main(int argc, char *argv[])
 			//Read the message sent by the client
 			rwSuccess = recvfrom(newsockfd, buffer, BUFSIZ, 0, (struct sockaddr *) &cli_addr, &client_length);
 			if (rwSuccess < 0) error("ERROR reading from socket");
-			printf("The message received from the client is %s", buffer);
+			lengthOfMessageReceived = strlen(buffer) - 1;
+			printf("The message is %s", buffer);
 
 			close(newsockfd);
+
 		}
 	}
 

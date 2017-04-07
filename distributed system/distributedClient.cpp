@@ -17,15 +17,8 @@
 #include <errno.h>
 #include <iostream>
 #include <string>
+#include <time.h>
 using namespace std;
-/*
- **********************************************************************************************************
- Function Name : error
- Purpose	   : Function to display the error message from the program to standard error.
- Parameter     : character pointer which points to the starting of the message
- Return Value  : The program exits with the condition 1
- **********************************************************************************************************
- */
 
 
 void error(const char *msg)
@@ -41,10 +34,13 @@ int userInfo(char* storageBuffer){
 	char tempBuf[10];
 	char* ID, uniqueID;
 	string name;
-	int UserType, newOrReturningUser, bufferWriteSuccess;
+	int UserType, newOrReturningUser, bufferWriteSuccess, newUnique;
 	char *ptr; // for strtol. not used anywhere
 	memset(storageBuffer, '\0',BUFSIZ);
 
+	printf("\nHello!!\n"
+			"Welcome to the new Distributed Learning Management System\n"
+			"To get you started we need a few information about you.\n\n");
 	printf("What kind of a user are you? Please choose an option by using numbers\n"
 			"1. System Administrator\n"
 			"2. Instructor\n"
@@ -52,6 +48,15 @@ int userInfo(char* storageBuffer){
 	fgets(tempBuf, sizeof tempBuf, stdin);
 	tempBuf[strlen(tempBuf) - 1] = '\0';
 	UserType = strtol(tempBuf, &ptr, 10);
+	if(UserType == 1){
+		printf("You are the System Administrator\n\n");
+	}
+	else if(UserType == 2){
+		printf("You are an Instructor\n\n");
+	}
+	else if(UserType == 3){
+		printf("You are a Student\n\n");
+	}
 	if(UserType > 3){
 		printf("Not a valid option\n"
 				"Please try again!\n");
@@ -66,25 +71,29 @@ int userInfo(char* storageBuffer){
 	newOrReturningUser = strtol(tempBuf, &ptr, 10);
 
 	if(newOrReturningUser == 1){
-		printf("Please enter your name\n");
+		printf("\nPlease enter your name\n");
 		fgets(tempBuf, sizeof tempBuf, stdin);
 		tempBuf[strlen(tempBuf) - 1] = '\0';
 		name = tempBuf;
 
-		printf("Enter your ID\n");
+		printf("\nEnter your ID\n");
 		fgets(tempBuf, sizeof tempBuf, stdin);
 		tempBuf[strlen(tempBuf) - 1] = 0;
 		ID = tempBuf;
-		bufferWriteSuccess = snprintf(storageBuffer, BUFSIZ, "%d %d %s %s", UserType, newOrReturningUser,name.c_str(), ID );
+
+		bufferWriteSuccess = snprintf(storageBuffer, BUFSIZ, "%d %d %s %s", UserType, newOrReturningUser,name.c_str(), ID);
 	}
 
 	else if(newOrReturningUser == 2){
-		printf("Please enter the unique ID\n");
+		printf("\nPlease enter your name\n");
+		fgets(tempBuf, sizeof tempBuf, stdin);
+		tempBuf[strlen(tempBuf) - 1] = '\0';
+		name = tempBuf;
+		printf("\nPlease enter the unique ID\n");
 		fgets(tempBuf, sizeof tempBuf, stdin);
 		tempBuf[strlen(tempBuf) - 1] = 0;
 		uniqueID = strtol(tempBuf, &ptr, 10);
-		bufferWriteSuccess = snprintf(storageBuffer, BUFSIZ, "%d %d %c", UserType, newOrReturningUser,uniqueID );
-
+		bufferWriteSuccess = snprintf(storageBuffer, BUFSIZ, "%d %d %d", UserType, newOrReturningUser,uniqueID );
 	}
 
 	else{
@@ -99,7 +108,7 @@ int createSocket(){
 	int sockfd;
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0)
-		error("ERROR opening socket");
+		error("ERROR opening socket\n");
 	return sockfd;
 
 }
@@ -117,7 +126,7 @@ int sendToServer(char* storageBuffer, int sockfd, struct sockaddr_in serv_addr){
 	rwSuccess = sendto(sockfd, storageBuffer, strlen(storageBuffer), 0,
 			(struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in));
 
-	printf("The sent message is %s and number of bytes sent is %d\n", storageBuffer, rwSuccess);
+	//printf("The sent message is %s and number of bytes sent is %d\n", storageBuffer, rwSuccess);
 	if (rwSuccess < 0)
 		error("ERROR writing to socket\n");
 	return 1;
@@ -147,6 +156,7 @@ int main(int argc, char *argv[])
 	}
 
 	int portno = atoi(argv[1]);
+
 	for(int i=0; i<3; i++){ //Give 3 tries to the user to enter the right info
 		userinfoReceived = userInfo(storageBuffer);
 		if(userinfoReceived == -1){
@@ -157,6 +167,7 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
+
 	server = gethostbyname(host);
 	if (server == NULL) {
 		fprintf(stderr,"ERROR, no such host\n");
@@ -172,17 +183,9 @@ int main(int argc, char *argv[])
 
 	connectSuccess= createConnection(portno, sockfd, serv_addr);
 
-	if(connectSuccess == 0){
-		userInfo(storageBuffer);
-	}
-	else{
+	if(connectSuccess != 0){
 		printf("Error connecting\n");
 	}
 
-
 	sendSuccess = sendToServer(storageBuffer,sockfd, serv_addr);
-	printf("The buffer contains: %s\n", storageBuffer); //just for debugging, need to remove
-	printf("The send success is %d\n", sendSuccess);
-
-
 }

@@ -1,17 +1,9 @@
 
 // Program: TCPServer
 // Subject: CMPE 207
-// Assignment 1 - TCP client server
+// Project: Distributed Learning Management System
 // Created by Team 8.
 
-
-
-/*Write TCP client and server programs that the client passes a greeting message
- *to the server. The server receives the message, counts the number of characters
- *in the message, and sends the count back to the client. The client then
- *receives the value, compares it to its count, and prints out both the message
- *and the count.
- */
 
 /*****SERVER PROGRAM*****/
 
@@ -23,6 +15,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <errno.h>
+#include <sqlite3.h>
 
 
 void error(const char *msg)
@@ -32,86 +25,99 @@ void error(const char *msg)
 	exit(1);
 }
 
+int receiveMessage(int newsockfd, struct sockaddr_in cli_addr, socklen_t client_length, char* buffer){
+	int receiveSuccess;
+	bzero(buffer,BUFSIZ);
+	receiveSuccess = recvfrom(newsockfd, buffer, BUFSIZ, 0, (struct sockaddr *) &cli_addr, &client_length);
+	if (receiveSuccess < 0) error("ERROR reading from socket\n");
+	printf("The message is %s\n", buffer);
 
-int main(int argc, char *argv[])
-{
+	return receiveSuccess;
+}
 
-	int sockfd, newsockfd, rwSuccess, portno;
-	size_t lengthOfMessageReceived;
 
-	socklen_t client_length, server_length;
-
-	char buffer[BUFSIZ];
-
-	struct sockaddr_in serv_addr, cli_addr;
-
-	pid_t childpid;
-
-	if(argc < 2){
-			error("Invalid arguments");
-
-			printf("Usage: ./server <Server port number>");
-			exit(0);
-		}
-	portno = atoi(argv[1]);
-
+int createSocket(){
+	int sockfd;
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0)
-		error("ERROR opening socket");
+		error("ERROR opening socket\n");
 
-	bzero((char *) &serv_addr, sizeof(serv_addr));
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = INADDR_ANY;
+	return sockfd;
+}
 
-	serv_addr.sin_port =  htons(portno);
+int binding(int sockfd,struct sockaddr_in serv_addr ){
+	int bindSuccess;
+	bindSuccess = bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+	if (bindSuccess < 0)
+		error("Binding Error!\n");
+
+	return bindSuccess;
+}
+
+int listenNaccept(int sockfd, int portno, char* buffer){
+	pid_t childpid;
+	struct sockaddr_in serv_addr, cli_addr;
+	int newsockfd, receiveSuccess;
+	socklen_t client_length;
+
+	listen(sockfd, 5);
+	printf("The server is listening on the port %d\n\n\n", portno);
 
 
-
-	printf("The server is listening on port %d\n", portno);
-
-
-
-	//Binding socket to an address and checking if it is successful
-	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-		error("ERROR on binding\n");
-
-	//Listen on the socket for incoming connections
-	listen(sockfd,5);
-	printf("The server is listening on port %d\n", portno);
-
-	//Loops forever, so that the server is always ready to listen to new connections
 	for(;;){
 		memset(&cli_addr, 0, sizeof(cli_addr));
 		newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &client_length);
 		if (newsockfd < 0)
 			error("ERROR on accept\n");
 
-		printf("I got a new connection\n");
 		//Creating a child process to proceed with the new client
 		childpid = fork();
 		if (childpid == -1) {
-			printf("inside == -1 The childpid is %d\n", getpid());
 			close(newsockfd);
 		}
+
 		else if(childpid > 0){
-			printf("inside > 0 The childpid is %d\n", getpid());
 			close(newsockfd);
 		}
+
 		else if(childpid == 0){
-			bzero(buffer,BUFSIZ);
-			printf("inside == 0 The childpid is %d\n", getpid());
-			//Read the message sent by the client
-			rwSuccess = recvfrom(newsockfd, buffer, BUFSIZ, 0, (struct sockaddr *) &cli_addr, &client_length);
-			if (rwSuccess < 0) error("ERROR reading from socket");
-			lengthOfMessageReceived = strlen(buffer) - 1;
-			printf("The message is %s\n", buffer);
-
-			close(newsockfd);
-
+			receiveSuccess = receiveMessage(newsockfd, cli_addr, client_length, buffer);
+			return receiveSuccess;
 		}
 	}
 
-	//Close the server when it is no longer required [cntrl+c]
+}
+
+
+int main(int argc, char *argv[])
+{
+	int sockfd, portno, bindSuccess, receiveSuccess;
+	size_t lengthOfMessageReceived;
+	socklen_t client_length, server_length;
+	struct sockaddr_in serv_addr;
+	char buffer[BUFSIZ];
+
+	if(argc < 2){
+		error("Invalid arguments\n");
+
+		printf("Usage: ./server <Server port number>\n");
+		exit(0);
+	}
+
+	printf("\nHello! \n");
+
+	portno = atoi(argv[1]);
+	sockfd = createSocket();
+
+	bzero((char *) &serv_addr, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_addr.s_addr = INADDR_ANY;
+	serv_addr.sin_port =  htons(portno);
+
+	bindSuccess = binding(sockfd, serv_addr );
+
+	receiveSuccess = listenNaccept(sockfd, portno, buffer);
+
 	close(sockfd);
 	return 0;
 }

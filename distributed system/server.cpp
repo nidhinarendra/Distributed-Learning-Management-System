@@ -65,6 +65,13 @@ int main(int argc, char *argv[])
 
 	pid_t childpid;
 
+	if(argc < 2){
+			error("Invalid arguments");
+			printf("Usage: ./server <Server port number>");
+			exit(0);
+		}
+	 portno = atoi(argv[1]);
+
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0)
 		error("ERROR opening socket");
@@ -73,17 +80,12 @@ int main(int argc, char *argv[])
 	bzero((char *) &serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
-	serv_addr.sin_port = 0;
+	serv_addr.sin_port = portno;
 
-	portno = getsockname(sockfd, (struct sockaddr *) &serv_addr, &server_length );
-	if (portno < 0){
-	    error("Failed to get the hostname");
-	    exit(1);
-	}
-	else{
+
 	printf("The server is listening on port %d\n", portno);
 	//Setting the value in the buffer to 0
-	}
+
 
 	//Binding socket to an address and checking if it is successful
 	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)

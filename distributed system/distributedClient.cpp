@@ -83,7 +83,7 @@ void userInfo(char* storageBuffer){
 		fgets(tempBuf, sizeof tempBuf, stdin);
 		tempBuf[strlen(tempBuf) - 1] = 0;
 		uniqueID = strtol(tempBuf, &ptr, 10);
-		bufferWriteSuccess = snprintf(storageBuffer, BUFSIZ, "%d %d %s", UserType, newOrReturningUser,uniqueID );
+		bufferWriteSuccess = snprintf(storageBuffer, BUFSIZ, "%d %d %c", UserType, newOrReturningUser,uniqueID );
 
 	}
 
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
 		userInfo(storageBuffer);
 	}
 	else{
-		printf("Error connecting");
+		printf("Error connecting\n");
 	}
 
 	sendSuccess = sendToServer(storageBuffer,sockfd, serv_addr);

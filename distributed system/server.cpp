@@ -70,21 +70,16 @@ int main(int argc, char *argv[])
 			printf("Usage: ./server <Server port number>");
 			exit(0);
 		}
-	 portno = atoi(argv[1]);
+	portno = atoi(argv[1]);
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0)
 		error("ERROR opening socket");
-	server_length = sizeof(serv_addr);
 
 	bzero((char *) &serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
-	serv_addr.sin_port = portno;
-
-
-	printf("The server is listening on port %d\n", portno);
-	//Setting the value in the buffer to 0
+	serv_addr.sin_port =  htons(portno);
 
 
 	//Binding socket to an address and checking if it is successful
@@ -93,7 +88,7 @@ int main(int argc, char *argv[])
 
 	//Listen on the socket for incoming connections
 	listen(sockfd,5);
-
+	printf("The server is listening on port %d\n", portno);
 
 	//Loops forever, so that the server is always ready to listen to new connections
 	for(;;){

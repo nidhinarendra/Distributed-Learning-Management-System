@@ -171,12 +171,16 @@ int main(int argc, char *argv[])
 	sockfd = createSocket();
 
 	connectSuccess= createConnection(portno, sockfd, serv_addr);
-
+<<<<<<< Updated upstream
 	if(connectSuccess == 0){
 		userInfo(storageBuffer);
 	}
 	else{
 		printf("Error connecting\n");
+=======
+	if(connectSuccess != 0){
+		error("Error connecting\n");
+>>>>>>> Stashed changes
 	}
 
 
